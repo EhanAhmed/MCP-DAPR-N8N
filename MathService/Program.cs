@@ -27,11 +27,23 @@ app.MapGet("/sum", (int a, int b) => new { result = a + b })
    .WithMetadata(new { name = "b", type = "int" });
 
 // Multiply two numbers
-app.MapPost("/multiply", (int a, int b) => new { result = a * b })
+app.MapGet("/multiply", (int a, int b) => new { result = a * b })
    .WithName("MultiplyNumbers")
    .WithMetadata("Multiply two numbers") // description
    .WithMetadata(new { name = "a", type = "int" })
    .WithMetadata(new { name = "b", type = "int" });
+
+// // Square a number
+// app.MapGet("/square", (double number) =>
+// {
+//     return new { result = number * number };
+// })
+// .WithName("SquareNumber")
+// .WithMetadata("Square a number") // description
+// .WithMetadata(new { name = "number", type = "double" });
+
+
+
 
 // ======================
 // AUTO-GENERATED TOOL LIST
