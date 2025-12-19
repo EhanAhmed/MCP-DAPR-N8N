@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("McpGateway")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2ad9e3678c9ffc3256c8817c02d402c4f73aa0bb")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+597faa1c01d9b900e83dec17074cf726a939f1a4")]
 [assembly: System.Reflection.AssemblyProductAttribute("McpGateway")]
 [assembly: System.Reflection.AssemblyTitleAttribute("McpGateway")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

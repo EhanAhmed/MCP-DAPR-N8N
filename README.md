@@ -1,175 +1,29 @@
-MCP Gateway with Dapr Auto-Discovery (.NET)
-Overview
 
-This project demonstrates a Model Context Protocol (MCP) Gateway built with .NET and Dapr that automatically exposes microservices as AI-callable tools.
-
-Instead of manually registering tools for every service, this gateway uses Dapr service invocation + tool discovery to make new services appear automatically in AI clients like Claude Desktop.
-
-Goal:
-
-Add a new microservice → it becomes an AI tool with zero gateway changes.
-
-Why This Exists
-
-Traditional AI tool integration is hard to scale:
-
-Every new tool requires manual registration
-
-Gateways become bottlenecks
-
-AI clients must be reconfigured often
-
-This project solves that by:
-
-Using Dapr for service discovery & invocation
-
-Using a standard /__tools endpoint per service
-
-Translating services → MCP tools dynamically
+This project is an end-to-end demonstration of an AI-driven, microservice-based tool execution system built using .NET Minimal APIs, a lightweight MCP (Model Context Protocol–style) JSON-RPC gateway, and an n8n workflow powered by an AI agent. At its core, the system exposes business capabilities (such as arithmetic operations) as HTTP endpoints inside a .NET service called MathService, where each endpoint is treated as a “tool” that can be dynamically discovered and invoked by an AI workflow without hardcoding. The MathService uses a custom `/__tools` endpoint that automatically inspects all registered Minimal API routes and generates a structured tool definition containing the HTTP method, route, human-readable description, and parameter schema. Tool descriptions and parameters are intentionally defined inline using `.WithMetadata()` on each endpoint, keeping the system simple and avoiding extra files, attributes, or reflection-heavy approaches. These tool definitions are consumed by an MCP Gateway, which acts as a JSON-RPC server implementing `tools/list` and `tools/call`. The gateway aggregates tools from one or more microservices and routes tool execution requests to the correct service using Dapr service invocation, returning normalized JSON-RPC responses. On top of this infrastructure sits an n8n workflow that begins with a chat trigger, fetches the available tools dynamically from the MCP Gateway, and passes them into an AI Agent node. The AI agent is strictly constrained by system instructions to only select tools that actually exist, map user input to the correct arguments, and return a valid native JSON object that conforms exactly to the JSON-RPC `tools/call` schema. A JavaScript Code node then safely validates, parses, and executes the AI-generated tool call, handling malformed outputs, missing tools, or runtime errors gracefully by returning a consistent fallback message instead of breaking the workflow. Finally, the result is normalized and sent back to the user via the chat response node. The entire architecture is intentionally modular, allowing new tools to be added simply by defining new Minimal API endpoints with metadata, without touching the gateway or the n8n workflow logic. This makes the system highly extensible, AI-friendly, and production-ready for scenarios where large language models need to reason over available capabilities and safely execute real backend actions. The project serves as a practical reference for building AI-integrated microservices, automated tool discovery, and robust agent execution pipelines using modern .NET, JSON-RPC, and low-code orchestration.
 
 
-+--------------------+
-|   Claude Desktop   |
-|   (MCP Client)     |
-+----------+---------+
-           |
-           | JSON-RPC (stdio / HTTP)
-           v
-+-----------------------------+
-|        MCP Gateway          |
-|  - tools/list               |
-|  - tools/call               |
-|  - Auto-discovery logic     |
-+--------------+--------------+
-               |
-               | Dapr Service Invocation
-               v
-+-----------------------------+
-|        Dapr Sidecar         |
-|  (Service Discovery Layer) |
-+--------------+--------------+
-               |
-               v
-+-----------------------------+
-|        MathService          |
-|  /sum                       |
-|  /time                      |
-|  /__tools                   |
-+-----------------------------+
+how to run:
+
+pre req:
+dotnet 9
+wsl 
+dockers-n8n 
 
 
+first run MathService program.cs:
+command:
+dapr run --app-id math-service --app-port 5092 --dapr-http-port 3500 dotnet run
 
-2️⃣ Dapr
-
-Dapr provides:
-
-Service discovery
-
-Sidecar networking
-
-Standardized service invocation
-
-MathService is invoked through Dapr:
-
-
-
-http://localhost:3500/v1.0/invoke/math-service/method/sum
-No hardcoded IPs or ports are required.
-
-
-
-3️⃣ MCP Gateway (.NET)
-
-The gateway acts as a bridge between AI clients and Dapr services.
-
-It implements:
-
-tools/list
-
-Calls /__tools on all registered services
-
-Merges results
-
-Returns MCP-compatible tool definitions
-
-tools/call
-
-Receives tool name + arguments
-
-Routes the call via Dapr to the correct service
-
-Returns the result to the AI client
-
-This makes the gateway generic and scalable.
-
-How Auto-Discovery Works
-
-Gateway knows which services exist (initially static, later dynamic)
-
-Gateway calls:
-
-/v1.0/invoke/<app-id>/method/__tools
-
-
-Services describe themselves
-
-Gateway exposes them as MCP tools
-
-Result
-
-✅ Add a new service
-✅ Implement /__tools
-✅ Run with Dapr
-➡ Tool appears automatically in Claude
-
-Running Locally
-Prerequisites
-
-.NET 8+
-
-Docker
-
-Dapr CLI
-
-WSL (recommended on Windows)
-
-Start Dapr
-dapr init
-
-Run MathService
-cd MathService
-dapr run \
-  --app-id math-service \
-  --app-port 5000 \
-  --dapr-http-port 3500 \
-  -- \
-  dotnet run --no-launch-profile
-curl "http://localhost:3500/v1.0/invoke/math-service/method/sum?a=3&b=5"
-
-
-Run MCP Gateway
-cd McpGateway
+second run McpGateway program.cs
+command:
 dotnet run
 
-Test Manually
-
-List tools:
-
-curl -X POST http://localhost:5258 \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+n8n run command:
+docker run -it --rm   -p 5678:5678   -v ~/.n8n:/home/node/.n8n   n8nio/n8n
 
 
-Call a tool:
+http://host.docker.internal:5258/
 
-curl -X POST http://localhost:5258 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc":"2.0",
-    "id":2,
-    "method":"tools/call",
-    "params":{
-      "name":"sum",
-      "arguments":{"a":3,"b":5}
-    }
-  }'
+
+
+
